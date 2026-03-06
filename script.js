@@ -1,4 +1,3 @@
-
 var bgA = document.getElementById("bgA");
 var bgB = document.getElementById("bgB");
 var currentFileEl = document.getElementById("currentFile");
@@ -108,7 +107,9 @@ function updateLogFade() {
 
   for (var i = 0; i < count; i++) {
     var depth = count <= 1 ? 0 : i / (count - 1); // 0 = top, 1 = bottom
-    var opacity = 1 - (depth * 0.86);
+    
+    // NEU: Opacity geht jetzt komplett auf 0 runter, das unterste Element fadet komplett weg
+    var opacity = 1 - depth; 
     var moveDown = depth * 28;
 
     lines[i].style.opacity = String(opacity);
