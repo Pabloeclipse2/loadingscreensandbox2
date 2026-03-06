@@ -1,0 +1,90 @@
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#bgWrap {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+#bgA {
+  opacity: 1;
+}
+
+#content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 1200px);
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.70);
+  pointer-events: none;
+}
+
+#title {
+  font-size: 58px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.pablos {
+  background: linear-gradient(90deg, #ff3b30 0%, #ff7a00 55%, #ffb347 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.z {
+  color: #ff2d2d;
+}
+
+.city {
+  color: #ffffff;
+}
+
+#currentFile {
+  min-height: 28px;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+#log {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-height: 270px;
+  overflow: hidden;
+}
+
+.line {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.18;
+  white-space: nowrap;
+  transition: opacity 0.15s linear, transform 0.15s linear;
+}
