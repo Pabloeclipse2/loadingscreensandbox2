@@ -2,30 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pablo's Z-Sandbox</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="bgWrap">
-    <img id="bgA" class="bg" alt="">
-    <img id="bgB" class="bg" alt="">
-  </div>
+  <div class="background1" id="1"></div>
+  <div class="background2" id="2"></div>
+  <div id="load"></div>
 
-  <div id="content">
-    <div id="title">
+  <div id="top-container">
+    <div id="servername">
       <span class="pablos">Pablo's</span>
       <span class="z">Z</span><span class="city">-Sandbox</span>
     </div>
-
-    <div id="currentFile"></div>
-    <div id="log"></div>
+    <div id="mapname">Lade Karte...</div>
   </div>
 
-  <script>
-    var IMAGES = ["img1.jpg", "img2.jpg", "img3.jpg", "img4.jpg", "img5.jpg", "img6.jpg", "img7.jpg", "img8.jpg", "img9.jpg", "img10.jpg", "img11.jpg"];
-  </script>
+  <div id="bottom">
+    <p id="textstatus">Verbinde...</p>
+    <div id="history"></div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
