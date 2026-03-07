@@ -1,4 +1,4 @@
-// Hier sind DEINE Bilder aus dem images/ Ordner
+// --- Bilder ---
 let photos = [
   "images/img1.jpg", "images/img2.jpg", "images/img3.jpg", 
   "images/img4.jpg", "images/img5.jpg", "images/img6.jpg", 
@@ -13,17 +13,12 @@ let load = document.getElementById("load");
 background2.style.opacity = 0;
 
 let mode = 0;
-let animOptions = {
-  duration: 1000,
-  fill: 'forwards'
-};
+let animOptions = { duration: 1000, fill: 'forwards' };
 
-// --- Bild-Animation (Homigrad Style) ---
+// --- Bild-Animation ---
 function slide() {
   if (usesPhotos.length == 0) {
-    for (let i = 0; i < photos.length; i++) {
-      usesPhotos[i] = photos[i];
-    }
+    for (let i = 0; i < photos.length; i++) usesPhotos[i] = photos[i];
   }
   
   if (mode == 0) {
@@ -43,12 +38,20 @@ function slide() {
   usesPhotos.splice(rand, 1);
 }
 
-// Start der Bilder
 slide();
 slide();
-setInterval(slide, 5000); // Alle 5 Sekunden ein neues Bild
+setInterval(slide, 5000);
 
-// --- Text-Filter (damit es sauber aussieht) ---
+// --- Variablen für den Download ---
+let totalFiles = 1;
+let neededFiles = 1;
+let currentFile = "";
+let lastRemainingLogged = null;
+
+let textstatus = document.getElementById("textstatus");
+let anchor = document.getElementById("history");
+let historyList = [];
+
 function sanitizeFileName(text) {
   if (!text) return "";
   let s = String(text);
@@ -61,53 +64,89 @@ function sanitizeFileName(text) {
   return s;
 }
 
-// --- GMod Hooks & History Log ---
-let textstatus = document.getElementById("textstatus");
-let anchor = document.getElementById("history");
-let historyList = [];
+// Berechnet die Prozente
+function getProgressPercent() {
+  if (totalFiles <= 0) return 0;
+  let p = (totalFiles - neededFiles) / totalFiles;
+  if (p < 0) p = 0;
+  if (p > 1) p = 1;
+  return Math.round(p * 100);
+}
 
-function addHistory(msg) {
-  if (!msg || msg === "Verbinde...") return;
-  
+// Fügt den Eintrag mit Prozenten hinzu und animiert den Fade
+function addHistoryLine(file, remaining) {
+  if (!file) return;
+
   let textEl = document.createElement("p");
   textEl.classList.add("log");
-  textEl.innerHTML = msg;
-  
+  textEl.innerHTML = file + " " + remaining + "%"; // <-- Dein Format: "ADDON 3%"
+
   anchor.insertBefore(textEl, anchor.childNodes[0]);
-  historyList.unshift(textEl); // Fügt oben hinzu
+  historyList.unshift(textEl);
   
-  let max = 12; // Maximale Anzahl an Einträgen im Log
-  
+  let maxEintraege = 10; // Wie viele Zeilen sollen sichtbar sein?
+
+  // Aktualisiert die Durchsichtigkeit (Fade Out)
   for (let i = 0; i < historyList.length; i++) {
     let item = historyList[i];
-    // Opacity berechnen: Der oberste (i=0) ist 1, nach unten wird es durchsichtig
-    let opacity = 1 - (i / max); 
-    item.style.opacity = opacity;
     
-    if (i >= max) {
+    // 0 = oben (100% sichtbar), 9 = unten (0% sichtbar)
+    let opacity = 1 - (i / (maxEintraege - 1));
+    item.style.opacity = Math.max(0, opacity);
+    
+    // Löscht Elemente, die zu weit unten sind
+    if (i >= maxEintraege) {
       anchor.removeChild(item);
-      historyList.pop();
+      historyList.splice(i, 1);
+      i--; 
     }
   }
 }
 
+// Logik, die zählt, wenn GMod die restlichen Dateien durchgibt
+function updateRemainingLog() {
+  let progress = getProgressPercent();
+  let remaining = 100 - progress;
+
+  if (lastRemainingLogged === null) {
+    lastRemainingLogged = remaining;
+    addHistoryLine(currentFile, remaining);
+    return;
+  }
+
+  if (remaining < lastRemainingLogged) {
+    for (let r = lastRemainingLogged - 1; r >= remaining; r--) {
+      addHistoryLine(currentFile, r);
+    }
+  } else if (remaining > lastRemainingLogged) {
+    addHistoryLine(currentFile, remaining);
+  }
+  lastRemainingLogged = remaining;
+}
+
+// --- GMod Hooks ---
 window.GameDetails = function(servername, serverurl, mapname, maxplayers, steamid, gamemode, volume, language) {
-  // Aktualisiert den Mapnamen unter deinem Titel
   document.getElementById("mapname").innerHTML = mapname;
 }
 
-window.DownloadingFile = function(filePath) {
-  let cleanName = sanitizeFileName(filePath);
-  if (textstatus.innerHTML !== "Verbinde...") {
-    addHistory(textstatus.innerHTML); // Altes in History schieben
-  }
-  textstatus.innerHTML = cleanName; // Neues anzeigen
+window.DownloadingFile = function(fileName) {
+  currentFile = sanitizeFileName(fileName);
+  textstatus.innerHTML = currentFile;
 }
 
-window.SetStatusChanged = function(status) {
-  let cleanStatus = sanitizeFileName(status);
-  if (textstatus.innerHTML !== "Verbinde...") {
-    addHistory(textstatus.innerHTML);
+window.SetStatusChanged = function(text) {
+  if (!currentFile) {
+    currentFile = sanitizeFileName(text);
+    textstatus.innerHTML = currentFile;
   }
-  textstatus.innerHTML = cleanStatus;
+}
+
+window.SetFilesTotal = function(total) {
+  totalFiles = Math.max(1, parseInt(total, 10) || 1);
+  updateRemainingLog();
+}
+
+window.SetFilesNeeded = function(needed) {
+  neededFiles = Math.max(0, parseInt(needed, 10) || 0);
+  updateRemainingLog();
 }
