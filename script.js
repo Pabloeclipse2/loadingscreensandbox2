@@ -1,171 +1,113 @@
-var bgA = document.getElementById("bgA");
-var bgB = document.getElementById("bgB");
-var currentFileEl = document.getElementById("currentFile");
-var logEl = document.getElementById("log");
+// Hier sind DEINE Bilder aus dem images/ Ordner
+let photos = [
+  "images/img1.jpg", "images/img2.jpg", "images/img3.jpg", 
+  "images/img4.jpg", "images/img5.jpg", "images/img6.jpg", 
+  "images/img7.jpg", "images/img8.jpg", "images/img9.jpg", 
+  "images/img10.jpg", "images/img11.jpg"
+];
 
-var activeA = true;
-var lastImageIndex = -1;
+let usesPhotos = [];
+let background1 = document.getElementById("1");
+let background2 = document.getElementById("2");
+let load = document.getElementById("load");
+background2.style.opacity = 0;
 
-var totalFiles = 1;
-var neededFiles = 1;
+let mode = 0;
+let animOptions = {
+  duration: 1000,
+  fill: 'forwards'
+};
 
-var currentFile = "";
-var lastRemainingLogged = null;
-
-// ---------- Images / crossfade ----------
-function pickRandomImage() {
-  if (!IMAGES || !IMAGES.length) return "";
-  var idx;
-  do {
-    idx = Math.floor(Math.random() * IMAGES.length);
-  } while (IMAGES.length > 1 && idx === lastImageIndex);
-  lastImageIndex = idx;
-  return "images/" + IMAGES[idx];
+// --- Bild-Animation (Homigrad Style) ---
+function slide() {
+  if (usesPhotos.length == 0) {
+    for (let i = 0; i < photos.length; i++) {
+      usesPhotos[i] = photos[i];
+    }
+  }
+  
+  if (mode == 0) {
+    mode = 1;
+    background2.style.backgroundImage = load.style.backgroundImage;
+    background1.animate([{ opacity: 1 }, { opacity: 0 }], animOptions);
+    background2.animate([{ opacity: 0 }, { opacity: 1 }], animOptions);
+  } else {
+    mode = 0;
+    background1.style.backgroundImage = load.style.backgroundImage;
+    background1.animate([{ opacity: 0 }, { opacity: 1 }], animOptions);
+    background2.animate([{ opacity: 1 }, { opacity: 0 }], animOptions);
+  }
+  
+  let rand = Math.floor(Math.random() * usesPhotos.length);
+  load.style.backgroundImage = 'url("' + usesPhotos[rand] + '")';
+  usesPhotos.splice(rand, 1);
 }
 
-function showFirstImage() {
-  var src = pickRandomImage();
-  if (!src) return;
-  bgA.src = src;
-  bgA.style.opacity = "1";
-  bgB.style.opacity = "0";
-}
+// Start der Bilder
+slide();
+slide();
+setInterval(slide, 5000); // Alle 5 Sekunden ein neues Bild
 
-function crossfadeNextImage() {
-  var src = pickRandomImage();
-  if (!src) return;
-
-  var visible = activeA ? bgA : bgB;
-  var hidden = activeA ? bgB : bgA;
-
-  hidden.onload = function () {
-    hidden.style.opacity = "1";
-    visible.style.opacity = "0";
-    hidden.onload = null;
-    activeA = !activeA;
-  };
-
-  hidden.src = src;
-}
-
-// ---------- Download display ----------
+// --- Text-Filter (damit es sauber aussieht) ---
 function sanitizeFileName(text) {
   if (!text) return "";
-
-  var s = String(text);
-
-  // If GMod status string comes in, try extracting the quoted file name.
-  var quoted = s.match(/['"]([^'"]+)['"]/);
-  if (quoted && quoted[1]) {
-    return quoted[1];
-  }
-
-  // Strip common prefixes like "Loading " or "Downloading "
+  let s = String(text);
+  let quoted = s.match(/['"]([^'"]+)['"]/);
+  if (quoted && quoted[1]) return quoted[1];
+  
   s = s.replace(/^.*?-\s*/i, "");
   s = s.replace(/^(loading|downloading)\s+/i, "");
   s = s.replace(/\.\.\.\s*\d+%?$/i, "");
-
   return s;
 }
 
-function setCurrentFile(text) {
-  var clean = sanitizeFileName(text);
-  currentFile = clean || "";
-  currentFileEl.textContent = currentFile;
-}
+// --- GMod Hooks & History Log ---
+let textstatus = document.getElementById("textstatus");
+let anchor = document.getElementById("history");
+let historyList = [];
 
-function getProgressPercent() {
-  if (totalFiles <= 0) return 0;
-  var p = (totalFiles - neededFiles) / totalFiles;
-  if (p < 0) p = 0;
-  if (p > 1) p = 1;
-  return Math.round(p * 100);
-}
-
-// Remaining percent list:
-// top = higher remaining percent
-// bottom = lower remaining percent
-function appendRemainingLine(file, remaining) {
-  if (!file) return;
-
-  var line = document.createElement("div");
-  line.className = "line";
-  line.textContent = file + " " + remaining + "%";
-  logEl.appendChild(line);
-
-  while (logEl.children.length > 12) {
-    logEl.removeChild(logEl.firstChild);
-  }
-
-  updateLogFade();
-}
-
-function updateLogFade() {
-  var lines = logEl.children;
-  var count = lines.length;
-  if (!count) return;
-
-  for (var i = 0; i < count; i++) {
-    var depth = count <= 1 ? 0 : i / (count - 1); // 0 = top, 1 = bottom
+function addHistory(msg) {
+  if (!msg || msg === "Verbinde...") return;
+  
+  let textEl = document.createElement("p");
+  textEl.classList.add("log");
+  textEl.innerHTML = msg;
+  
+  anchor.insertBefore(textEl, anchor.childNodes[0]);
+  historyList.unshift(textEl); // Fügt oben hinzu
+  
+  let max = 12; // Maximale Anzahl an Einträgen im Log
+  
+  for (let i = 0; i < historyList.length; i++) {
+    let item = historyList[i];
+    // Opacity berechnen: Der oberste (i=0) ist 1, nach unten wird es durchsichtig
+    let opacity = 1 - (i / max); 
+    item.style.opacity = opacity;
     
-    // NEU: Opacity geht jetzt komplett auf 0 runter, das unterste Element fadet komplett weg
-    var opacity = 1 - depth; 
-    var moveDown = depth * 28;
-
-    lines[i].style.opacity = String(opacity);
-    lines[i].style.transform = "translateY(" + moveDown + "px)";
-  }
-}
-
-function updateRemainingLog() {
-  var progress = getProgressPercent();
-  var remaining = 100 - progress;
-
-  if (lastRemainingLogged === null) {
-    lastRemainingLogged = remaining;
-    appendRemainingLine(currentFile, remaining);
-    return;
-  }
-
-  // During normal loading remaining decreases: 100, 99, 98...
-  if (remaining < lastRemainingLogged) {
-    for (var r = lastRemainingLogged - 1; r >= remaining; r--) {
-      appendRemainingLine(currentFile, r);
+    if (i >= max) {
+      anchor.removeChild(item);
+      historyList.pop();
     }
-  } else if (remaining > lastRemainingLogged) {
-    // Fallback for weird hook jumps
-    appendRemainingLine(currentFile, remaining);
-  }
-
-  lastRemainingLogged = remaining;
-}
-
-// ---------- GMod hooks ----------
-function DownloadingFile(fileName) {
-  setCurrentFile(fileName);
-}
-
-function SetStatusChanged(text) {
-  // Only use SetStatusChanged if DownloadingFile has not supplied a filename yet.
-  if (!currentFile) {
-    setCurrentFile(text);
   }
 }
 
-function SetFilesTotal(total) {
-  totalFiles = Math.max(1, parseInt(total, 10) || 1);
-  updateRemainingLog();
+window.GameDetails = function(servername, serverurl, mapname, maxplayers, steamid, gamemode, volume, language) {
+  // Aktualisiert den Mapnamen unter deinem Titel
+  document.getElementById("mapname").innerHTML = mapname;
 }
 
-function SetFilesNeeded(needed) {
-  neededFiles = Math.max(0, parseInt(needed, 10) || 0);
-  updateRemainingLog();
+window.DownloadingFile = function(filePath) {
+  let cleanName = sanitizeFileName(filePath);
+  if (textstatus.innerHTML !== "Verbinde...") {
+    addHistory(textstatus.innerHTML); // Altes in History schieben
+  }
+  textstatus.innerHTML = cleanName; // Neues anzeigen
 }
 
-// ---------- Start ----------
-showFirstImage();
-setInterval(crossfadeNextImage, 7000);
-
-// No fake preview text, no "Downloading content... 100%", no completion message.
-// Blank under-title area until GMod sends the real file name.
-currentFileEl.textContent = "";
+window.SetStatusChanged = function(status) {
+  let cleanStatus = sanitizeFileName(status);
+  if (textstatus.innerHTML !== "Verbinde...") {
+    addHistory(textstatus.innerHTML);
+  }
+  textstatus.innerHTML = cleanStatus;
+}
